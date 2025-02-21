@@ -1,0 +1,90 @@
+[CORE]
+BCMP = "1"
+CPORT = "0"
+FLOG_MAXF = "10"
+LOG_LEVEL = "0"
+MSC = "4"
+MSI = "900"
+SERIAL = "PS280-223476"
+SHELL_TO = "30"
+SHELL_TO_ENA = "0"
+TRANSPORT = "modem"
+
+[HUB]
+TYPE = "mqtt"
+EXCH_CNT = "72"
+EXCH_MODE = "0"
+EXCH_TIMER = ""
+EXCH_TO = "30"
+LIFETIME = "90"
+NTP_IP = "de.pool.ntp.org"
+NTP_PORT = "123"
+PROTOCOL = "tcp"
+REMOTE_IP = "194.94.110.169"
+REMOTE_PORT = "1883"
+TSYNC = "86400"
+TSYNC_WAIT = "1"
+T_RETRY = "240"
+T_RETRY_MAX = "86400"
+T_RETRY_MODE = "1"
+
+[MODEM]
+BANDS_LTE = "[20]"
+APN = "gigsky-02"
+APN_PW = ""
+APN_USER = ""
+BANDS_NB = "[8,20]"
+CAT = "any"
+OP = "0"
+
+[MQTT]
+TIMEOUT = "15"
+CLIENT_ID = ""
+DIAG_RP = "0"
+MAX_RETRY = "4"
+PL_SIG_ENA = "0"
+PL_SIG_PW = "psense-client"
+PW = ""
+QOS = "1"
+TOPIC_DOWN = "PS-280/udk.playground/UdK/VPT/ROF/Lab/Wall/dl"
+TOPIC_UP = "PS-280/udk.playground/UdK/VPT/ROF/Lab/Wall"
+USER = ""
+
+[OTA]
+URL = ""
+RESULT = "0"
+UPDATE = "0"
+
+[SEC]
+TO_RD = "3"
+CA_PATH = "/sec/ca.pem"
+CC_PATH = "/sec/cc.pem"
+LOG_LEVEL = "0"
+MODE = "0"
+UK_PATH = "/sec/uk.key"
+
+[SIG]
+REG_VIS = "0"
+BOOT_AUR = "0"
+BOOT_VIS = "0"
+
+[THRESH]
+VBAT_VBAT_ENA = "0"
+VBAT_VBAT_LO = "-1000"
+VBAT_VBAT_HI = "1000"
+AHT_HUM_ENA = "0"
+AHT_HUM_HI = "1000"
+AHT_HUM_LO = "-100"
+AHT_TEM_ENA = "0"
+AHT_TEM_HI = "1000"
+AHT_TEM_LO = "-100"
+SUNRISE_CO2_ENA = "0"
+SUNRISE_CO2_HI = "1000"
+SUNRISE_CO2_LO = "0"
+
+[WIFI]
+TX_POWER = "15"
+AP_BSSID = ""
+AP_PW = ""
+AP_SEC = "wpa2_psk"
+AP_SSID = "default_ap"

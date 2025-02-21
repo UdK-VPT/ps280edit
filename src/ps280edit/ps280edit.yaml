@@ -1,0 +1,24 @@
+app_author: Werner Kaul-Gothe
+app_name: SP280Edit
+defaults: defaults
+database: 
+  root: database
+firmwares: firmware
+templates: templates
+ps280:
+  ignore:
+  - CORE.VERSION
+  superuser:
+  - CORE.SERIAL
+  - OTA.RESULT
+  - RUNTIME.IPV4
+  - RUNTIME.RSSI
+stickertool:
+  root: stickertool
+  templates: templates
+  config: stickertool.yaml
+  active_template: udk_vpt_emu_na.png
+codebase: ps280edit.py
+cfg_file: ps280edit.yaml #this file
+dist_dir: app
+temp_dir: build_temp

@@ -1,0 +1,24 @@
+# Python-specific ignores
+__pycache__/
+*.py[cod]
+*.env
+*.egg
+*.egg-info/
+
+# PyInstaller
+/build/
+/dist/
+*.spec
+
+# VS Code
+.vscode/
+
+# System files
+.DS_Store
+Thumbs.db
+
+#Jupyter notebooks
+
+.ipynb_checkpoints/
+.jupyter/
+*.ipynb

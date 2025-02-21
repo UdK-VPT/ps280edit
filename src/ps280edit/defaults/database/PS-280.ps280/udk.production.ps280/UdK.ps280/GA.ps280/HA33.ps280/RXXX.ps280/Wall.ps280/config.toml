@@ -1,0 +1,97 @@
+[CORE]
+FLOG_MAXF = "10"
+LOG_LEVEL = "0"
+MSC = "4"
+MSI = "900"
+SERIAL = "PS280-223420"
+SHELL_TO = "30"
+SHELL_TO_ENA = "0"
+TRANSPORT = "modem"
+VERSION = "0.7.0.481.c22c85e.20240612_074854"
+WEBCONF = "1"
+
+[OTA]
+RESULT = "0"
+UPDATE = "0"
+URL = ""
+
+[HUB]
+EXCH_CNT = "10"
+EXCH_MODE = "0"
+EXCH_TIMER = ""
+EXCH_TO = "30"
+LIFETIME = "90"
+NTP_IP = "de.pool.ntp.org"
+NTP_PORT = "123"
+PROTOCOL = "tcp"
+REMOTE_IP = "194.94.110.169"
+REMOTE_PORT = "1883"
+STORE_MAX = "250"
+TO_OVR = "0"
+TSYNC = "86400"
+TSYNC_WAIT = "1"
+TYPE = "mqtt"
+T_RETRY = "240"
+T_RETRY_MAX = "86400"
+T_RETRY_MODE = "1"
+
+[WIFI]
+AP_BSSID = ""
+AP_PW = ""
+AP_SEC = "open"
+AP_SSID = "default_ap"
+TX_POWER = "15"
+
+[MODBUS]
+TIMEOUT = "120"
+
+[MODEM]
+APN = "gigsky-02"
+APN_PW = ""
+APN_USER = ""
+BANDS_LTE = "[20]"
+BANDS_NB = "[8,20]"
+CAT = "any"
+OP = "0"
+
+[MQTT]
+CLIENT_ID = ""
+DIAG_CONN = "0"
+DIAG_SYS = "0"
+MAX_RETRY = "4"
+PL_SIG_ENA = "0"
+PL_SIG_PW = "psense-client"
+PW = ""
+QOS = "1"
+TIMEOUT = "15"
+TOPIC_DOWN = "PS-280/udk.production/UdK/GA/HA33/RXXX/Wall/dl"
+TOPIC_UP = "PS-280/udk.production/UdK/GA/HA33/RXXX/Wall"
+USER = ""
+
+[SIG]
+BOOT_AUR = "0"
+BOOT_VIS = "0"
+REG_VIS = "0"
+
+[RUNTIME]
+IPV4 = "0.0.0.0"
+RSSI = "-999"
+
+[SEC]
+CA_PATH = "/sec/ca.pem"
+CC_PATH = "/sec/cc.pem"
+LOG_LEVEL = "0"
+MODE = "0"
+TO_RD = "3"
+UK_PATH = "/sec/uk.key"
+
+[THRESH]
+AHT_HUM_ENA = "0"
+AHT_HUM_LO = "-100"
+AHT_HUM_HI = "1000"
+AHT_TEM_ENA = "0"
+AHT_TEM_LO = "-100"
+AHT_TEM_HI = "1000"
+SUNRISE_CO2_ENA = "0"
+SUNRISE_CO2_LO = "0"
+SUNRISE_CO2_HI = "1000"

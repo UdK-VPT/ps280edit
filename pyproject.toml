@@ -1,0 +1,36 @@
+[build-system]
+requires = ["setuptools>=42", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "ps280edit"
+version = "1.0.0"
+description = "Editor for the PS-280 Climate Sensor by PIKK-Systems"
+authors = [
+    { name = "Werner Kaul-Gothe", email = "your.email@example.com" }
+]
+license = { text = "GNU AGPL-3.0" }
+readme = "README.md"
+requires-python = ">=3.8"
+dependencies = [
+    "esptool==4.8.1",
+    "flet==0.26.0",
+    "ipython==8.27.0",
+    "Pillow==11.1.0",
+    "platformdirs==4.3.6",
+    "pyserial==3.5",
+    "PyYAML==6.0.2",
+    "segno==1.6.1",
+    "toml==0.10.2",
+    "pyinstaller==5.13.2"
+]
+
+[tool.setuptools]
+package-dir = {"" = "src"}
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[project.urls]
+"Source Code" = "https://github.com/your-username/ps280-climate-editor"
+"Bug Tracker" = "https://github.com/your-username/ps280-climate-editor/issues"
