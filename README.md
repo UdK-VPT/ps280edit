@@ -50,7 +50,7 @@ pip install -r requirements.txt
 1. **Clone the Repository**
 
 ```bash
-git clone https://github.com/your-username/ps280-climate-editor.git
+git clone https://github.com/UdK-VPT/ps280edit.git
 cd ps280-climate-editor
 ```
 
