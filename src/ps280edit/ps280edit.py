@@ -42,7 +42,7 @@ import platformdirs
 from lib.backend import PS280EditorBackend
 from lib.frontend import PS280EditorUI
 
-def get_yaml_path():
+def get_yaml_path(name):
     """Finds the correct path to ps280edit.yaml, whether running as a script or a PyInstaller EXE."""
     if getattr(sys, 'frozen', False):
         # Running in PyInstaller bundle
@@ -51,9 +51,9 @@ def get_yaml_path():
         # Running as a normal script
         base_path = os.path.abspath(".")
 
-    return os.path.join(base_path, "ps280edit.yaml")
+    return os.path.join(base_path, name)
 
-yaml_path = get_yaml_path()
+yaml_path = get_yaml_path( "ps280edit.yaml")
 
 with open(yaml_path, "r", encoding="utf-8") as file:
     config = yaml.safe_load(file)
@@ -68,23 +68,23 @@ print(config)
 DIRS = {
     'databaseroot': {
         'workdir': os.path.abspath(os.path.join(platformdirs.user_documents_dir(), config['app_name'], config['database']['root'])),
-        'default': os.path.abspath(os.path.join(config['defaults'], config['database']['root'])),
+        'default': os.path.abspath(os.path.join(get_yaml_path(config['defaults']), config['database']['root'])),
     },
     'firmware_dir': {
         'workdir': os.path.abspath(os.path.join(platformdirs.user_documents_dir(), config['app_name'], config['firmwares'])),
-        'default': os.path.abspath(os.path.join(config['defaults'], config['firmwares'])),
+        'default': os.path.abspath(os.path.join(get_yaml_path(config['defaults']), config['firmwares'])),
     },
     'template_dir': {
         'workdir': os.path.abspath(os.path.join(platformdirs.user_documents_dir(), config['app_name'], config['templates'])),
-        'default': os.path.abspath(os.path.join(config['defaults'], config['templates'])),
+        'default': os.path.abspath(os.path.join(get_yaml_path(config['defaults']), config['templates'])),
     },
     'stickertool': {
         'workdir': os.path.abspath(os.path.join(platformdirs.user_documents_dir(), config['app_name'], config['stickertool']['root'])),
-        'default': os.path.abspath(os.path.join(config['defaults'], config['stickertool']['root'])),
+        'default': os.path.abspath(os.path.join(get_yaml_path(config['defaults']), config['stickertool']['root'])),
     },
     'stickertool_templates': {
         'workdir': os.path.abspath(os.path.join(platformdirs.user_documents_dir(), config['app_name'], config['stickertool']['root'],config['stickertool']['templates'])),
-        'default': os.path.abspath(os.path.join(config['defaults'], config['stickertool']['root'], config['stickertool']['templates'])),
+        'default': os.path.abspath(os.path.join(get_yaml_path(config['defaults']), config['stickertool']['root'], config['stickertool']['templates'])),
     },
 }
 
@@ -118,5 +118,4 @@ backend = PS280EditorBackend(
 ui = PS280EditorUI(backend=backend)
 ft.app(target=ui.main)
 # -
-
 

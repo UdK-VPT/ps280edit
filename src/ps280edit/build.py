@@ -22,41 +22,6 @@
 # ## Create App
 
 # +
-import os
-import yaml
-import shutil
-import subprocess
-print(os.getcwd())
-CFG_FILE= 'ps280edit.yaml'
-
-
-with open(CFG_FILE, "r", encoding="utf-8") as file:
-    config = yaml.safe_load(file)
-
-def clean_old_builds(folders):
-    """Remove old build, dist, and .spec files without confirmation."""
-    for folder in folders:
-        if os.path.exists(folder):
-            print(f"🗑️ Removing {folder}...")
-            shutil.rmtree(folder, ignore_errors=True)  # Deletes the folder and its contents
-
-    for spec_file in os.listdir("."):
-        if spec_file.endswith(".spec"):
-            print(f"🗑️ Removing {spec_file}...")
-            os.remove(spec_file)  # Deletes .spec file
-
-def build_pyinstaller():
-    """Run PyInstaller to create a clean build."""
-    print("🚀 Building with PyInstaller...")
-    subprocess.run(["pyinstaller", "--onedir", "--noconsole", "--add-data", f"{config['cfg_file']}:.", "--distpath", f"./{config['dist_dir']}", "--workpath", f"./{config['temp_dir']}", "--name", config['app_name'], config['codebase']])
-
-if __name__ == "__main__":
-    clean_old_builds([config['dist_dir'], config['temp_dir']])
-    build_pyinstaller()
-    clean_old_builds([config['temp_dir']]) # remove temp build directory
-    print("✅ Build completed successfully!")
-
-# +
 """
 Author: Werner Kaul-Gothe
 Department: VPT
@@ -96,12 +61,12 @@ CFG_FILE = 'ps280edit.yaml'
 with open(CFG_FILE, "r", encoding="utf-8") as file:
     config = yaml.safe_load(file)
 
-def clean_old_builds():
+def clean_old_builds(folders):
     """
     Remove previous build artifacts including 'build', 'dist', and '.spec' files.
     This ensures that a fresh build environment is used for each compilation.
     """
-    for folder in ["build", "dist"]:
+    for folder in folders:
         if os.path.exists(folder):
             print(f"🗑️ Removing {folder} directory...")
             shutil.rmtree(folder, ignore_errors=True)  # Deletes the folder and its contents
@@ -121,18 +86,23 @@ def build_pyinstaller():
         - --add-data: Includes additional files specified in the config.
     """
     print("🚀 Building with PyInstaller...")
-    subprocess.run([
-        "pyinstaller",
-        "--onedir",
-        "--noconsole",
-        "--add-data", f"{config['cfg_file']}:.",  # Include additional configuration files
-        "--name", config['app_name'],  # Set the name of the executable
-        config['codebase']  # Specify the entry point of the application
-    ])
+    subprocess.run(["pyinstaller", 
+    "--onedir", 
+    "--noconsole", 
+    "--add-data", f"{config['cfg_file']}:.", 
+    "--add-data", f"{config['defaults']}:{config['defaults']}", 
+    "--distpath", f"./{config['dist_dir']}", 
+    "--workpath", f"./{config['temp_dir']}", 
+    "--name", config['app_name'], 
+    config['codebase']])
 
 # Entry point of the script
 if __name__ == "__main__":
-    clean_old_builds()  # Clean old build files
-    build_pyinstaller()  # Build the executable
+    clean_old_builds([config['dist_dir'], config['temp_dir']])
+    build_pyinstaller()
+    clean_old_builds([config['temp_dir']]) # remove temp build directory
     print("✅ Build completed successfully!")
+
+# -
+
 

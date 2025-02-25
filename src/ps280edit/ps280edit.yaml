@@ -1,5 +1,5 @@
 app_author: Werner Kaul-Gothe
-app_name: SP280Edit
+app_name: PS280Edit
 defaults: defaults
 database: 
   root: database
