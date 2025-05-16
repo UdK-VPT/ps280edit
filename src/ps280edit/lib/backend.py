@@ -6,7 +6,7 @@
 #       extension: .py
 #       format_name: light
 #       format_version: '1.5'
-#       jupytext_version: 1.16.4
+#       jupytext_version: 1.16.7
 #   kernelspec:
 #     display_name: Python 3 (ipykernel)
 #     language: python
@@ -55,7 +55,7 @@ import toml
 #if TOOLBOXROOT not in sys.path:
 #    sys.path = [TOOLBOXROOT] + sys.path
 
-from .ps280_toolbox import PS280, flash_firmware, configure_for_udk
+from .ps280_toolbox import PS280#, flash_firmware, configure_for_udk
 
 from .stickertool import Sticker
 # Define standard output and error streams
@@ -426,9 +426,20 @@ class PS280EditorBackend:
                             print(f"Parameter '{group}.{parameter}' is now set to {self.get(group, parameter)}")
                     else:
                         print(f"Parameter '{group}.{parameter}' is not available in this firmware!")
-        time.sleep(1)
+        #time.sleep(1)
         return True
-
+    
+    def get(self,group, parameter):
+        return self.PS280.get(group, parameter)
+        
+    def set(self, group, parameter, value= None, superuser=False):
+        result= False
+        # try:
+        result=self.PS280.set(group, parameter, value, superuser)
+        #  except Exception as e:
+        #     print(f'Could not set parameter {group}.{parameter}:\n {e}', file=sys.stderr)
+        return result
+        
     @property
     def firmware_versions(self):
         """
@@ -460,11 +471,18 @@ class PS280EditorBackend:
         """
         Establish a connection to the PS-280 device.
         """
+        #del self.PS280
+        #time.sleep(5)
         print("Connecting to PS-280")
-        self.PS280 = PS280('', 460800, timeout=1, stdout=stdoutstream, stderr=stderrstream)
-        if self.PS280 is None:
+        self.PS280 = PS280('', 115200, timeout=1, stdout=stdoutstream, stderr=stderrstream)
+        print("------",self.PS280.connection)
+        if self.PS280.connection is None:
             print('No connection to PS-280', file=sys.stderr)
-    
+            del self.PS280
+            raise Exception("No PS-280 availabe")
+            return False
+        return True
+        
     def firmware_erase(self):
         """
         Erase the firmware from the PS-280 device.
@@ -474,11 +492,15 @@ class PS280EditorBackend:
         """
         print("Erasing firmware on PS-280")
         result = False
-        try:
-            self.PS280.port  # Check if device is connected
-        except Exception as e:
-            print(f'No connection to PS-280: {e}', file=sys.stderr)
+        
+        if self.PS280 is None:
+            print('No connection to PS-280', file=sys.stderr)
             return False
+#        try:
+#            self.PS280.serial_reconnect()  # Check if device is connected
+#        except Exception as e:
+#            print(f'No connection to PS-280: {e}', file=sys.stderr)
+#            return False
         try:
             result = self.PS280.firmware_erase()
             time.sleep(1)
@@ -495,11 +517,14 @@ class PS280EditorBackend:
         """
         print("Flashing firmware on PS-280")
         result = False
-        try:
-            self.PS280.port  # Check if device is connected
-        except Exception as e:
-            print(f'No connection to PS-280: {e}', file=sys.stderr)
+        if self.PS280 is None:
+            print('No connection to PS-280', file=sys.stderr)
             return False
+#        try:
+#            self.PS280.serial_reconnect()  # Check if device is connected
+#        except Exception as e:
+#            print(f'No connection to PS-280: {e}', file=sys.stderr)
+#            return False
         try:
             # Update firmware with the corresponding files
             result = self.PS280.firmware_update(
@@ -511,6 +536,33 @@ class PS280EditorBackend:
         except Exception as e:
             print(f'Error flashing firmware: {e}', file=sys.stderr)
         return not result
+
+    def read_settings(self):
+        print("Reading settings from PS-280\nPlese be patient...")
+        if self.PS280 is None:
+            print('No connection to PS-280', file=sys.stderr)
+        else:
+            print( 'Reading')
+            config_data= self.PS280.settings
+            #time.sleep(1)
+            if config_data:
+                self.toml_data= config_data
+                return True
+            return False
+
+    def read_settings_to_temp(self):
+        print("Reading settings from PS-280\nPlese be patient...")
+        if self.PS280 is None:
+            print('No connection to PS-280', file=sys.stderr)
+        else:
+            print( 'Reading')
+            config_data= self.PS280.settings
+            #time.sleep(1)
+            if config_data:
+                self.temp_toml_data= config_data
+                return True
+            return False
+    
     
     @property
     def sensor_id(self):

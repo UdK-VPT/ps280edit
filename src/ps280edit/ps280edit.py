@@ -6,7 +6,7 @@
 #       extension: .py
 #       format_name: light
 #       format_version: '1.5'
-#       jupytext_version: 1.16.4
+#       jupytext_version: 1.16.7
 #   kernelspec:
 #     display_name: Python 3 (ipykernel)
 #     language: python
@@ -30,7 +30,7 @@ Dependencies:
 - yaml
 - shutil
 - platformdirs
-- lib.backend (PS280EditorBackend)
+- lib.backend (PS280EditorBackend) 
 - lib.frontend (PS280EditorUI)
 """
 
@@ -95,14 +95,13 @@ FILES = {
 }
 
 
-
 # Ensure all directories exist and copy default files if necessary
 for d in DIRS.values():
     print(d['workdir'])
     if not os.path.exists(d['workdir']):
         shutil.copytree(d['default'], d['workdir'], ignore=shutil.ignore_patterns('*.tmp', '*.log'))
         
-
+print(f"\\n\\nSTICKER{FILES['stickertool_config']}\\n\\n")
 # Initialize backend
 backend = PS280EditorBackend(
     database_root=DIRS['databaseroot']['workdir'],
@@ -118,4 +117,16 @@ backend = PS280EditorBackend(
 ui = PS280EditorUI(backend=backend)
 ft.app(target=ui.main)
 # -
+# !python ps280edit.py
+
+
+
+
+
+
+
+# !python popup.py
+
+# !python lib/real_time_output_overlay.py
+
 

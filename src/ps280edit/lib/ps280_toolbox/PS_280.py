@@ -6,7 +6,7 @@
 #       extension: .py
 #       format_name: light
 #       format_version: '1.5'
-#       jupytext_version: 1.16.4
+#       jupytext_version: 1.16.7
 #   kernelspec:
 #     display_name: Python 3 (ipykernel)
 #     language: python
@@ -101,230 +101,196 @@
 # WIFI      AP_SSID                  default_ap
 
 # +
-import sys, serial, time, json, warnings, logging, toml, copy
+import sys, serial, time, json, logging, warnings, toml, copy
 from contextlib import redirect_stdout
 #from benedict import benedict
 import esptool, time, os, io
 import subprocess
 import select
+import glob
+import re
 
+# Clear any default root logger handlers
+for handler in logging.root.handlers[:]:
+    logging.root.removeHandler(handler)
 
+# Create a custom logger
+logger = logging.getLogger("stderr_logger")
+logger.setLevel(logging.DEBUG)  # Capture all levels
 
-logging.basicConfig(format='%(asctime)s-%(levelname)s: %(message)s', level=logging.INFO)
+# Prevent duplication by disabling propagation
+logger.propagate = False
 
-class PS280_Warning(UserWarning):
-    print()
-    pass
+# Create handlers
+stdout_handler = logging.StreamHandler(sys.stdout)
+stderr_handler = logging.StreamHandler(sys.stderr)
 
-class Configuration:
+# Set levels for handlers
+stdout_handler.setLevel(logging.INFO)   # INFO and below
+stderr_handler.setLevel(logging.ERROR)  # ERROR and above
+
+# Create formatters and add them to handlers
+stderrformatter = logging.Formatter('%(levelname)s: - %(message)s')
+stdoutformatter = logging.Formatter('%(levelname)s: - %(message)s')
+stdout_handler.setFormatter(stdoutformatter)
+stderr_handler.setFormatter(stderrformatter)
+
+# Add handlers to the logger
+logger.addHandler(stdout_handler)
+logger.addHandler(stderr_handler)
+
+def printerror(message):
+    print(message, file=sys.stderr)
+
+def startprogress(title):
+    print(f"{title} ")
     
-    @staticmethod
-    def _flatten(dictionary):
-        out={}
-        for group in dictionary:
-            out.update({f'{group}.{parameter}': dictionary[group][parameter] for parameter in dictionary[group]})
-        return(out)
-        
-    def __init__(self, configfile = '', configdict = {}, read=False):
-        self.configfile = configfile
-        self._configuration = configdict
-        if read:
-            self.read()
+def printprogress():
+    print('.',end='')
 
-    def read(self, configfile = ''):
-        if not configfile:
-            configfile = self.configfile
-        logging.info(f"Reading configuration to '{configfile}'")
-        with open(configfile, 'r') as f:
-            self._configuration = toml.load(f)
-        return(self._configuration)
+def endprogress():
+    print("\n")
+#logger.basicConfig(format='%(asctime)s-%(levelname)s: %(message)s', 
+#                    level=logger.INFO)
+
+def clean_vt100(data):
+    """
+    Removes VT-100 ANSI escape codes and non-printable characters.
+    """
+    # Comprehensive ANSI escape code pattern for VT-100
+    ansi_escape = re.compile(r'(\x1b[@-_][0-9;?]*[ -/]*[@-~])')
     
-    def write(self, configfile = ''):
-        if not configfile:
-            configfile = self.configfile
-        logging.info(f"Writing configuration to '{configfile}'")  
-        with open(configfile,'w') as f:
-            toml.dump(self._configuration, f)
-        
-    def get(self, group = '', parameter = '', field = '', flattened= False):
-        out = {}
-        if group:
-            if parameter:
-                if field:
-                    out = self._configuration[group][parameter][field]
-                else:            
-                    out = self._configuration[group][parameter]
-            else:
-                for p in self._configuration[group]:
-                    out = {p: self.get(group,p,field) for p in self._configuration[group]}
-        else:
-            for g in self._configuration:
-                out[g]={}
-                for p in self._configuration[g]:
-                        out[g][p] = self.get(g,p,field)
-        if flattened:
-            return(self._flatten(out))
-        return(out)
-    
-    def set(self, group = '', parameter = '', field = '', value= None):
-        self._configuration[group][parameter][field] = value
-        
-    @property
-    def fields(self):
-        return(list(self._configuration[next(iter(self._configuration))].keys()))
+    # Remove ANSI escape sequences
+    data = ansi_escape.sub('', data)
 
-    @property
-    def groups(self):
-         return(list(self._configuration))
-        
-    @property
-    def parameters(self):
-        return({g:list(self._configuration[g].keys()) for g in self._configuration})
+    # Remove non-printable characters and control sequences
+    printable = re.compile(r'[^\x20-\x7E\n\r\t]')
+    data = printable.sub('', data)
 
-    def capture_from_sensor(self, configfile = '', save= False):
-        logging.info(f"Capturing configuration from sensor")
-        sensor= PS280()
-        settings= sensor.settings()
-        logging.info('Capturing all setting and infos')
-        for group,pset in settings.items():
-            self._configuration[group] = {}
-            for parameter,value in pset.items():
-                #initialize parameter set, 
-                #set factoryValue to value found on ps-2820 (only use after firmware update)
-                #set controlType to text_input as default
-                self._configuration[group][parameter]={"shortDescription":'',
-                                            "longDescription":'',
-                                            "controlType":'text_input',
-                                            "minimumValue":'',
-                                            "maximumValue":'',
-                                            "allowedValues":'',
-                                            "factoryValue": value,
-                                            "defaultValue": '',
-                                            "provisionalValue": '',
-                                            "value": ''}
-                #get info from ps-280
-                info = sensor.info_dict(group , parameter)
-                #set items of parameter set to received values
-                for k,v in info.items():
-                    self._configuration[group][parameter][k] = v 
-                    
-                #find control type
-                if self._configuration[group][parameter]["allowedValues"]:
-                    if self._configuration[group][parameter]["factoryValue"].startswith('[') and self._configuration[group][parameter]["factoryValue"].endswith(']'):
-                        self._configuration[group][parameter]["controlType"] = 'multiselect_box'
-                    else:
-                        self._configuration[group][parameter]["controlType"] = 'select_box'
-                elif (self._configuration[group][parameter]["minimumValue"] == '0') and (self._configuration[group][parameter]["maximumValue"] == '1'):
-                    self._configuration[group][parameter]["controlType"] = 'checkbox'
-                else:
-                    try:
-                        mi = int(self._configuration[group][parameter]["minimumValue"])
-                        ma = int(self._configuration[group][parameter]["maximumValue"])
-                        if (ma - mi) < 50:
-                            self._configuration[group][parameter]["controlType"] = 'slider'
-                    except:
-                        pass
-                #force text_input on specific parameters
-                if f'{group}.{parameter}' in ['CORE.SERIAL','HUB.TYPE']:
-                    self._configuration[group][parameter]["controlType"] = 'text_input'
-                #convert values based on the controlType (necessary for multiselect_box, checkbox, slider  )
-                
-                #logging.info(self._configuration[group][parameter]["value"])
-                if self._configuration[group][parameter]["controlType"] == 'multiselect_box':
-                    self._configuration[group][parameter]["factoryValue"] = self._configuration[group][parameter]["factoryValue"].strip('[').strip(']').split(',')
-                elif self._configuration[group][parameter]["controlType"] == 'checkbox':
-                    self._configuration[group][parameter]["factoryValue"] = bool(int(self._configuration[group][parameter]["factoryValue"]))
-                    self._configuration[group][parameter]["minimumValue"] = bool(int(self._configuration[group][parameter]["minimumValue"]))
-                    self._configuration[group][parameter]["maximumValue"] = bool(int(self._configuration[group][parameter]["maximumValue"]))
-                elif self._configuration[group][parameter]["controlType"] == 'slider':
-                    self._configuration[group][parameter]["factoryValue"] = int(self._configuration[group][parameter]["factoryValue"])
-                    self._configuration[group][parameter]["minimumValue"] = int(self._configuration[group][parameter]["minimumValue"])
-                    self._configuration[group][parameter]["maximumValue"] = int(self._configuration[group][parameter]["maximumValue"])
+    # Collapse repetitive patterns and remove stray ANSI color codes
+    repetitive = re.compile(r'(/[ >�]+)+')
+    data = repetitive.sub('/ > ', data)
 
-                #copy.deepcopy() is necessary to avoid references and anchors in the toml file
-                self._configuration[group][parameter]["defaultValue"] = copy.deepcopy(self._configuration[group][parameter]["factoryValue"])
-                self._configuration[group][parameter]["value"] = copy.deepcopy(self._configuration[group][parameter]["factoryValue"])
-                self._configuration[group][parameter]["provisionalValue"] = copy.deepcopy(self._configuration[group][parameter]["factoryValue"])
-                #logging.info(self._configuration[group][parameter]["controlType"])
-                #logging.info(self._configuration[group][parameter]["value"])
-        if save:
-            self.write()
-        return(self._configuration)
-    
+    # Remove residual garbage characters
+    residual = re.compile(r'�+')
+    data = residual.sub('', data)
+
+    return data.strip()
+
     
 class PS280:
+
+    def __init__(self,port='', baudrate=115200, timeout=3, stdout= sys.stdout, stderr= sys.stderr):
+        self.stdout= stdout
+        self.stderr= stderr
+        if port:
+            self.port= port
+        else:
+            self.port= None
+        self.baudrate= baudrate
+        self.timeout= timeout
+        self.connection= None
+        #self.check_serialport
+        self.serial_reconnect()
     
-    class switch:
-        def __init__(self, outer_instance ,group, parameter):
-            self.outer= outer_instance
-            self.group= group
-            self.parameter= parameter
+    def open_serial(self):
+        """
+        Try to open the given serial port.
+        """
+        # clear serial
+        try:
+            del self.connection
+            self.connection= None
+        except:
+            pass
+        if self.port:
+            try:
+                ser = serial.Serial(self.port, self.baudrate, timeout=self.timeout)
+                logger.info(f"Connected to {self.port}")
+                self.connection= ser
+                return True
+            except serial.SerialException as e:
+                logger.error(f"Error opening {self.port}: {e}")
+                printerror(f"Error opening {self.port}: {e}")
+        
+                self.connection= None
+        logger.error(f"Could not connect to device")        
+        printerror(f"Could not connect to device")        
+        return False
+    
+    def check_chiptype(self):
+        with io.StringIO() as buf, redirect_stdout(buf):
+            esptool.main(['read_mac'])
+            output = buf.getvalue()
+        output= output.split('\n')
+        for n, sp in enumerate(output):
+            print(n, sp )
+            if sp.startswith('Detecting chip type'):
+                return(output[n].split(' ')[-1])
+        return('Unknown')
 
-        def on(self):
-            self.outer.set(self.group, self.parameter, '1')
+    
+    def serial_reconnect(self):
+        """
+        Continuously check for USB serial connection and handle reconnections.
+        """
+        
+        #while True:
+        if self.connection and self.connection.is_open:
+            return True
+        print("Searching for ESP device...")
+        if self.find_esp_port():
+            self.open_serial()
+        #time.sleep(0.5)
+        return self.connection
+        
+    def find_esp_port(self, retries=10):
+        """
+        Combines pySerial scanning and esptool detection to find ESP device.
+        """
+        esp_vids = {
+            "1A86:7523": "CH340",
+            "10C4:EA60": "CP210x",
+            "0403:6001": "FT232",
+            "067B:2303": "PL2303",
+            "303A:1001": "Espressif USB JTAG/serial debug unit",
+            "10C4:EA60": "Silabs CP2102N"
+        }
+        logger.info("find_esp_port()")
+        startprogress("Trying to connect")
+        while retries:
+            ports = serial.tools.list_ports.comports()
+            candidate_ports = []
+            #print(ports)
+            # Step 1: Quick scan using pySerial
+            for port in ports:
+                #print(port.hwid, port.pid)
+                if any(vid in port.hwid for vid in esp_vids) :
+                    logger.info(f"Possible ESP device on port: {port.device}")
+                    candidate_ports.append(port.device)
+        
+            # Step 2: Validate with esptool
+            for port in candidate_ports:
+                try:
+                    logger.info(f"Verifying with esptool on port: {port}")
+                    esptool.main(["--port", port, "flash_id"])
+                    logger.info(f"ESP device confirmed on port: {port}")
+                    self.port=port
+                    return True
+                except Exception:
+                    logger.info(f"Port {port} did not respond as ESP.")
+            time.sleep(1)
+            retries -= 1
+            printprogress()
+        endprogress()
+        self.port= None
+        printerror("No ESP device found.")
+        logger.error("No ESP device found.")
+        time.sleep(2)
+        return False
 
-        def off(self):
-            self.outer.set(self.group, self.parameter, '0')
-
-        def enable(self):
-            self.on()
-
-        def disable(self):
-            self.off()
-
-    class warning:
-        def __init__(self, outer_instance ,group, parameter_low, parameter_high, parameter_enable= '', lowest=- 1000, highest= 1000):
-            self.outer= outer_instance
-            self.group= group
-            self.parameter_low= parameter_low
-            self.parameter_high= parameter_high
-            self.parameter_enable= parameter_enable
-            self.lowest= lowest
-            self.highest= highest
-            self._high=''
-            self._low=''
-
-
-        def set_low(self, low):
-            if low:
-                self._low= str(low)
-            if self._low:
-
-                self.outer.set(self.group, self.parameter_low, self._low)
-
-        def reset_low(self):
-            self.outer.set(self.group, self.parameter_low, self.lowest)
-
-        def set_high(self, high):
-            if high:
-                self._high= str(high)
-            if self._high:
-                self.outer.set(self.group, self.parameter_high, self._high)
-
-        def reset_high(self):
-            self.outer.set(self.group, self.parameter_high, self.highest)
-
-        def on(self, low='', high=''):
-            if self.parameter_enable:
-                self.outer.set(self.group, self.parameter_enable, 1)
-            self.set_low(low)
-            self.set_high(high)
-
-        def off(self):
-            self.reset_low()
-            self.reset_high
-            if self.parameter_enable:
-                self.outer.set(self.group, self.parameter_enable, 0)
-
-        def enable(self, low='', high=''):
-            self.on(low, high)
-
-        def disable(self):
-            self.off()
-            
-
-            
-    def find_serial_port(self):
+        
+    def check_serialport(self):
         with io.StringIO() as buf, redirect_stdout(buf):
             esptool.main(['read_mac'])
             output = buf.getvalue()
@@ -333,31 +299,6 @@ class PS280:
             if sp.startswith('Detecting chip type'):
                 return(output[n-2].split(' ')[-1])
         return('')
-        
-        
-       # with io.StringIO() as buf, redirect_stdout(buf):
-      #      esptool.main(['read_mac'])
-       #     output = buf.getvalue()
-       # output= output.split('\n')
-      # if [sp for sp in output if sp.startswith('Detecting chip type')][-1]:
-      #      return([sp for sp in output if sp.startswith('Serial port')][0].split(' ')[2])
-       # return('')
-
-    def __init__(self,port='', baudrate=115200, timeout=3, stdout= sys.stdout, stderr= sys.stderr):
-        self.stdout= stdout
-        self.stderr= stderr
-        if port:
-            self.port= port
-        else:
-            self.port= self.find_serial_port()
-        self.connection= serial.Serial(self.port, baudrate, timeout=timeout)
-        self.aural_boot_signal= self.switch(self, 'SIG', 'BOOT_AUR')
-        self.visual_registration_signal= self.switch(self, 'SIG', 'REG_VIS')
-        self.visual_boot_signal= self.switch(self, 'SIG', 'BOOT_VIS')
-        
-        self.co2_warning= self.warning(self, 'THRESH', 'SUNRISE_CO2_LO', 'SUNRISE_CO2_HI', '', 0, 1000)
-        self.humidity_warning= self.warning(self, 'THRESH', 'AHT_HUM_LO', 'AHT_HUM_HI','AHT_HUM_ENA', -100, 200)
-        self.temperature_warning= self.warning(self, 'THRESH', 'AHT_TEM_LO', 'AHT_TEM_HI','AHT_TEM_ENA', -100, 100)
 
     @property
     def connected(self):
@@ -372,30 +313,72 @@ class PS280:
         if not self.connected():
                 raise Exception('Device is not answering!')
 
-    
-    def receive(self, timeout=10):
-        #this will store the line
-        seq = []
-        lines = []
-        count = 1
-        #while self.connection.in_waiting < 80:
-        #    time.sleep(0.1)
-        while True:
-            line = self.connection.readline().decode('utf-8')
-            #print("LINE", line, "END")
-            if (line := line.strip()):# and (not line.strip().endswith('/ >'))):
-                if not line.strip().endswith('/ >'):
-                    lines.append(line)
-            else:
-                break
-        return(lines)
-    
-    def read_settings_file(self):
-        logging.info('Reading all settings')
-        settings= ''
+    def send_command(self, command, starttoken='', endtoken='', errortoken= '',timeout=2):
+        """
+        Sends a command and reads the complete response.
+        Args:
+        command (str): The command to send.
+            starttoken (str): Optional token indicating the start of the response.
+            endtoken (str): Optional token indicating the end of the response.
+            timeout (int): Maximum time to wait for the complete response (seconds).
+        Returns:
+            list: The complete response as a list of cleaned strings.
+        """
+        # Step 1: Clear any residual data before sending the command
         self.connection.reset_input_buffer()
         self.connection.reset_output_buffer()
-        self.connection.readlines(-1)
+        # Short delay to ensure buffer clearing
+        time.sleep(0.1)  
+    
+        # Step 2: Send the command with CR line ending
+        self.connection.write((command + '\r\n\r\n').encode('utf-8'))
+        print(f"Sent: {command}")
+        # Allow some time for the device to process
+        time.sleep(0.1)  
+    
+        start_time = time.time()
+        response = []
+        start_found = False
+    
+        # Step 3: Read the response until end token or timeout
+        while time.time() - start_time < timeout:
+            # Check if data is available
+            if self.connection.in_waiting:
+                # Read and clean the data
+                raw_data = self.connection.readline().decode('utf-8', errors='ignore')
+                data = clean_vt100(raw_data).strip()
+                #print(data)
+                if errortoken and errortoken in data:
+                    logger.error('Illegal value!')
+                    return [errortoken]
+                # Detect the start token if specified
+                if starttoken and starttoken in data:
+                    start_found = True
+                    # Skip the start token if no end token is specified
+                    if not endtoken:
+                        return [starttoken]
+    
+                # Append data to response if start token was found
+                if start_found:
+                    if endtoken in data:
+                        # Stop if the end token is detected
+                        break  
+                    # Only append non-empty cleaned data
+                    if data:  
+                        response.append(data)
+            else:
+                # Avoid CPU overload
+                time.sleep(0.01)  
+    
+        # Return the collected response
+        return response
+    
+    def read_settings_file(self):
+        logger.info('Reading all settings')
+        settings= ''
+        #self.connection.reset_input_buffer()
+        #self.connection.reset_output_buffer()
+        #self.connection.readlines(-1)
         self.connection.write(b'cat /core/settings\r\n')
         time.sleep(0.5)          
         for line in self.connection.readlines(-1):
@@ -405,74 +388,42 @@ class PS280:
         return (settings)
 
     def get(self,group,parameter):
-        return(self.settings()[group][parameter ])
+        return(self.settings[group][parameter ])
 
     def set(self,group,parameter,value, superuser=False):
-        logging.info(f"Setting parameter '{group}.{parameter}' to value '{value}'!")
-        self.connection.reset_input_buffer()
-        self.connection.reset_output_buffer()
-        self.connection.readlines(-1)
+        group= group.upper()
+        parameter= parameter.upper()
+        value= str(value)
+        logger.info(f"Setting parameter '{group}.{parameter}' to value '{value}'!")
         if superuser:
             self.connection.write('su PS!_@dmin\r\n'.encode('utf_8'))
-        time.sleep(0.3)
-       # self.connection.readlines(-1) ###############TTTEEESSSTT
-       # time.sleep(0.1)
-        self.connection.write(f'settings set {group} {parameter} {value}\r\n'.encode('utf_8'))
-        time.sleep(0.3)
-        result= self.connection.readlines(-1)
-        textresult=[r.decode('utf-8') for r in result if not r.decode('utf-8').endswith('> \n')]
-        logging.info(f"Setting parameter '{group}.{parameter}' to value '{value}'!")
-        logging.info(f'###{textresult}###')
-        #logging.info(' '.join(textresult), PS280_Warning)
-        if b'stored' not in b' '.join(result):
-            logging.info(' '.join(textresult), PS280_Warning)
-            return(False)
-        else:
-            logging.info('Done!')
-        return(True)
+            time.sleep(0.3)
+
+        while not (response := self.send_command(f"settings set {group} {parameter} {value}", starttoken='stored', endtoken='', errortoken= "illegal value")):
+            time.sleep(0.5)
+        print(f'[{group}][{parameter}] is set to {self.settings[group][parameter]}')
+        return(response)
 
     def info(self,group,parameter):
-        logging.info(f"Getting parameter info for '{group}.{parameter}'!")
+        logger.info(f"Getting parameter info for '{group}.{parameter}'!")
         self.connection.reset_input_buffer()
         self.connection.reset_output_buffer()
         self.connection.readlines(-1)
         self.connection.write(f'settings info {group} {parameter}\r\n'.encode('utf_8'))
-        #logging.info('Waiting for Results...')
+        #logger.info('Waiting for Results...')
         time.sleep(0.1)
         #time.sleep(0.5)
         
         result= self.receive() #self.connection.readlines(-1)
         return(result)   
 
-    
-    def settings(self, printout=False):
-        settings= {}
-       # print(0)
-        #self.check_connection()
-       # print('.', end='')
-        logging.info(f"Getting settings...")
-        self.connection.reset_input_buffer()
-       # print('.', end='')
-        self.connection.reset_output_buffer()
-        self.connection.write(f'settings get\r\n'.encode('utf_8'))
-        time.sleep(0.5)
-        #find start
-       # print('.', end='')
-        timeout_cnt=100
-       # print('.', end='')
-        received= self.connection.readline().decode('utf-8')
-        while 'Module' not in received:
-            if timeout_cnt == 0:
-                raise Exception('The device did not answer')
-            timeout_cnt -= 1
-            time.sleep(0.1)
-            received= self.connection.readline().decode('utf-8')
-       # print('.', end='')
-        while "\n" == self.connection.readline().decode('utf-8'):
-            logging.info('Waiting for \\r')
+    @property
+    def settings(self):
         
-        while  line:=self.connection.readline().decode('utf-8'):#) != "\n" :#.strip():
-            #logging.info(line)
+        while not (response := self.send_command("settings", starttoken='Module', endtoken='/ >')):
+            time.sleep(0.5)
+        settings= {}
+        for line in response[1:]:
             line= ' '.join(line.strip().split()).split(' ')
             if line and line[0].isalnum():
                 if line[0] not in settings:
@@ -481,10 +432,8 @@ class PS280:
                     settings[line[0]][line[1]] = line[-1]
                 elif len(line) > 1:
                     settings[line[0]][line[1]] =  ""
-       # print('.', end='\r')
-        if printout:
-            print(toml.dump(settings, allow_unicode=True, default_flow_style=False))
         return(settings)
+        
 
     def info_dict(ps, group , parameter):
         info=ps.info(group,parameter)
@@ -511,124 +460,16 @@ class PS280:
                         infodict['allowedValues']=i[1].strip().strip('{}').split(',')
         return(infodict)
 
-    def capture_factory_defaults(self, filepath= 'firmware_defaults.toml'):
-        settings= self.settings()
-        logging.info('Capturing all setting and infos')
-        for group,pset in settings.items():
-            for parameter,value in pset.items():
-                #initialize parameter set, 
-                #set factoryValue to value found on ps-2820 (only use after firmware update)
-                #set controlType to text_input as default
-                settings[group][parameter]={"shortDescription":'',
-                                            "longDescription":'',
-                                            "controlType":'text_input',
-                                            "quickAccess": False,
-                                            "minimumValue":'',
-                                            "maximumValue":'',
-                                            "allowedValues":'',
-                                            "factoryValue": value,
-                                            "defaultValue": '',
-                                            "provisionalValue": '',
-                                            "value": ''}
-                #get info from ps-280
-                info = self.info_dict(group , parameter)
-                #set items of parameter set to received values
-                for k, v in info.items():
-                    settings[group][parameter][k] = v 
-                #find control type
-                if settings[group][parameter]["allowedValues"]:
-                    if settings[group][parameter]["factoryValue"].startswith('[') and settings[group][parameter]["factoryValue"].endswith(']'):
-                        settings[group][parameter]["controlType"] = 'multiselect_box'
-                    else:
-                        settings[group][parameter]["controlType"] = 'select_box'
-                elif (settings[group][parameter]["minimumValue"] == '0') and (settings[group][parameter]["maximumValue"] == '1'):
-                    settings[group][parameter]["controlType"] = 'checkbox'
-                else:
-                    try:
-                        mi = int(settings[group][parameter]["minimumValue"])
-                        ma = int(settings[group][parameter]["maximumValue"])
-                        if (ma - mi) < 50:
-                            settings[group][parameter]["controlType"] = 'slider'
-                    except:
-                        pass
-                #force text_input on specific parameters
-                if f'{group}.{parameter}' in ['CORE.SERIAL','HUB.TYPE']:
-                    settings[group][parameter]["controlType"] = 'text_input'
-                #convert values based on the controlType (necessary for multiselect_box, checkbox, slider  )
-                
-                logging.info(settings[group][parameter]["value"])
-                if settings[group][parameter]["controlType"] == 'multiselect_box':
-                    settings[group][parameter]["factoryValue"] = settings[group][parameter]["factoryValue"].strip('[').strip(']').split(',')
-                elif settings[group][parameter]["controlType"] == 'checkbox':
-                    settings[group][parameter]["factoryValue"] = bool(int(settings[group][parameter]["factoryValue"]))
-                    settings[group][parameter]["minimumValue"] = bool(int(settings[group][parameter]["minimumValue"]))
-                    settings[group][parameter]["maximumValue"] = bool(int(settings[group][parameter]["maximumValue"]))
-                elif settings[group][parameter]["controlType"] == 'slider':
-                    settings[group][parameter]["factoryValue"] = int(settings[group][parameter]["factoryValue"])
-                    settings[group][parameter]["minimumValue"] = int(settings[group][parameter]["minimumValue"])
-                    settings[group][parameter]["maximumValue"] = int(settings[group][parameter]["maximumValue"])
 
-                #copy.deepcopy() is necessary to avoid references and anchors in the toml file
-                settings[group][parameter]["defaultValue"] = copy.deepcopy(settings[group][parameter]["factoryValue"])
-                settings[group][parameter]["value"] = copy.deepcopy(settings[group][parameter]["factoryValue"])
-                settings[group][parameter]["provisionalValue"] = copy.deepcopy(settings[group][parameter]["factoryValue"])
-                logging.info(settings[group][parameter]["controlType"])
-                logging.info(settings[group][parameter]["value"])
-        logging.info(f"Saving all setting and infos in '{filepath}'")
-        with open(filepath,'w') as f:
-            toml.dump(settings, f)
-            
-    def reboot(self):
-        logging.info('Rebooting')
+    def clear_buffers(self):
         self.connection.reset_input_buffer()
         self.connection.reset_output_buffer()
         self.connection.readlines(-1)
-        self.connection.write('reboot\r\n'.encode('utf_8'))
-
-    @property
-    def serial(self):
-        return self.get('CORE','SERIAL')
-
-    def set_serial(self, serial='Unknown'):
-        self.set('CORE', 'SERIAL', str(serial), superuser=True)
         
-    def set_measuring_interval(self, interval):
-        self.set('CORE', 'MSI', str(interval))
-
-    def set_measuring_counts_per_send(self, counts):
-        self.set('CORE', 'MSC', str(counts))       
-
-    def set_mqtt(self, broker_ip, port='1883', username= '', password= '', client_id= '', lifetime=300, timeout= 15, retries= 4, qos=1, topic=''):
-        self.set('HUB', 'TYPE', 'mqtt')
-        self.set('HUB', 'TSYNC_WAIT', '1')
-        self.set('HUB', 'T_RETRY_MODE', '1')
-        self.set('HUB','T_RETRY', '60')
-        self.set('HUB', 'T_RETRY_MAX', '43200')
-        self.set('HUB', 'LIFETIME',str(lifetime)) 
-        self.set('HUB', 'PROTOCOL','tcp')   
-        self.set('HUB', 'REMOTE_IP',str(broker_ip))   
-        self.set('HUB', 'REMOTE_PORT',str(port))  
-        if username:
-            self.set('MQTT', 'USER',str(username))  
-        if password:
-            self.set('MQTT', 'PW',str(password))
-        self.set('MQTT', 'TIMEOUT',str(timeout))
-        self.set('MQTT', 'MAX_RETRY',str(retries))
-        self.set('MQTT', 'QOS',str(qos))
-        self.set('MQTT', 'CLIENT_ID',client_id)
-        self.set('MQTT', 'TOPIC_UP',topic)
-        self.set('MQTT', 'TOPIC_DOWN',f'{topic}/dl')
-
-    def set_topic(self, topic):
-        self.set('MQTT', 'TOPIC_UP',topic)
-        self.set('MQTT', 'TOPIC_DOWN',f'{topic}/dl')
-    
-    @property
-    def mqtt_interval(self):
-        self.get('CORE', 'MSI')
-
-    def set_measuring_interval(self, interval):
-        self.set('CORE', 'MSI', str(interval))   
+    def reboot(self):
+        logger.info('Rebooting')
+        self.clear_buffers()
+        self.connection.write('reboot\r\n'.encode('utf_8'))
 
     @staticmethod
     def run_command_with_realtime_output(command):
@@ -651,7 +492,7 @@ class PS280:
         while True:
 
             readable, _, _ = select.select([process.stdout, process.stderr], [], [])
-
+            stdout_line=''
             # Check stdout
             if process.stdout in readable:
                 stdout_line = process.stdout.readline()
@@ -673,13 +514,13 @@ class PS280:
 
     @staticmethod
     def firmware_erase():
-        logging.info('Erasing flash... (This may take a while!)')
+        logger.info('Erasing flash... (This may take a while!)')
         return not PS280.run_command_with_realtime_output([sys.executable, "-m", "esptool", "-b", "460800", "erase_flash"])
         
     
     @staticmethod
     def firmware_update(bootloader_file, partition_table_file,firmware_file):
-        logging.info('Updating firmware')
+        logger.info('Updating firmware')
         return not PS280.run_command_with_realtime_output( 
             [
                 sys.executable, "-m", "esptool", "-b", "460800", "write_flash",
@@ -689,56 +530,5 @@ class PS280:
                 ]
             )
 
-def flash_firmware(firmware_version=''):
-    bootloader_file= f'firmware/{firmware_version}/bootloader.bin'
-    partition_table_file= f'firmware/{firmware_version}/partition-table.bin'
-    firmware_file= f'firmware/{firmware_version}/pikk-sense-esp32s3.bin'
-    sensor= PS280(timeout=1)
-    #sensor.settings(printout= True)
-    PS280.firmware_erase()
-    logging.info('ERASED')
-    time.sleep(5)
-    return(PS280.firmware_update(bootloader_file, partition_table_file,firmware_file))
-        
-def configure_for_udk(firmware_version='', topic='PS-280/udk.playground', baudrate=9600, serial='', measuring_interval=900, measuring_counts_per_send=4, port=''):
-    if firmware_version:
-        self.flash_firmware(firmware_version)
-    sensor= PS280(baudrate= baudrate,timeout=0.5)
-    #sensor.reboot()
-    time.sleep(1)
-    sensor.aural_boot_signal.off()
-    sensor.visual_registration_signal.off()
-    sensor.visual_boot_signal.off()
-    sensor.co2_warning.off()
-    sensor.temperature_warning.off()
-    sensor.humidity_warning.off()
-    sensor.set_measuring_interval(900)
-    sensor.set_measuring_counts_per_send(4)
-    sensor.set_mqtt(broker_ip= '194.94.110.169', 
-                    port='1883', 
-                    username= '', 
-                    password= '', 
-                    client_id= '', 
-                    lifetime=300, 
-                    timeout= 15, 
-                    retries= 4, 
-                    qos=1, 
-                    topic=topic)
-    if serial:
-        sensor.set_serial(serial)
-    #sensor.reboot()
-    time.sleep(10)
-    return(sensor.settings())
-
-    def create_defaults(self, filepath= 'firmware_defaults.toml'):
-        for group,pset in settings.items():
-            for parameter,value in pset.items():
-                settings[group][parameter]={"shortDescription":'',
-                                            "longDescription":'',
-                                            "controlType":'',
-                                            "minimum_value":'',
-                                            "maximum_value":'',
-                                            "allowed_values":'',
-                                            "default_value": value}
 # -
 

@@ -6,7 +6,7 @@
 #       extension: .py
 #       format_name: light
 #       format_version: '1.5'
-#       jupytext_version: 1.16.4
+#       jupytext_version: 1.16.7
 #   kernelspec:
 #     display_name: Python 3 (ipykernel)
 #     language: python
@@ -20,7 +20,7 @@ import sys, os
 #
 #    sys.path = [TOOLBOXROOT]+sys.path
 #
-from .ps280_toolbox import PS280, flash_firmware, configure_for_udk
+from .ps280_toolbox import PS280#, flash_firmware, configure_for_udk
 
 #STICKERTOOLPATH= os.path.join(os.path.dirname(os.getcwd()),'stickertool')
 #if STICKERTOOLPATH not in sys.path:
@@ -170,7 +170,7 @@ class PS280EditorUI:
                 page= page,
                 labeltext= "Firmware Version",
                 options= [ft.dropdown.Option(tpl) for tpl in self.backend.firmware_versions],
-                defaultoption= sorted(self.backend.firmware_versions)[-1],
+                defaultoption= sorted(self.backend.firmware_versions)[0],
                 callback= lambda _: self.on_set_firmware_version(page)
                 ),
             'template' : LabeledDropdown(
@@ -234,7 +234,7 @@ class PS280EditorUI:
                             #alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
                         ),
                     ],
-                height=300,
+                height=360,
             ),
            'database': LabeledContainer(
                 page= page,
@@ -281,14 +281,14 @@ class PS280EditorUI:
                         ),
 
                     ],
-               height=300,
+               height=360,
             ),
        }
 
         self.pagecomponents= {
             'header': ft.ResponsiveRow(
                 [
-                    ft.Text("TOML Editor", style=ft.TextThemeStyle.TITLE_LARGE),
+                    ft.Text("PS-280 Configuration Tool", style=ft.TextThemeStyle.TITLE_LARGE),
                     self.widgets['database'],
                     self.widgets['basic'],
                     #self.widgets['local'],
@@ -395,7 +395,7 @@ class PS280EditorUI:
                 #self.render_form()  # Render the form based on the loaded TOML data
                 self.show_snackbar(page, message)
             else:
-                self.show_snackbar(page, f'Set topics in configuration to {self.dropdowns['template'].value}')
+                self.show_snackbar(page, f"Set topics in configuration to {self.dropdowns['template'].value}")
 
     def on_set_configuration_serial(self, page):
             success, message = self.backend.set_configuration_serial(self.textfields['serial'].value)
@@ -404,7 +404,8 @@ class PS280EditorUI:
                 #self.render_form()  # Render the form based on the loaded TOML data
                 self.show_snackbar(page, message)
             else:
-                self.show_snackbar(page, f'Set topics in configuration to {self.dropdowns['template'].value}')
+                self.show_snackbar(page, f"Set topics in configuration to {self.dropdowns['template'].value}")
+                
 
     def on_set_configuration_mqtt_broker(self, page):
             success, message = self.backend.set_configuration_mqtt_broker_ip(self.textfields['mqtt_broker'].value)
@@ -413,8 +414,7 @@ class PS280EditorUI:
                 #self.render_form()  # Render the form based on the loaded TOML data
                 self.show_snackbar(page, message)
             else:
-                self.show_snackbar(page, f'Set topics in configuration to {self.dropdowns['template'].value}')
-
+                self.show_snackbar(page, f"Set topics in configuration to {self.dropdowns['template'].value}")
     #Erase Firmware
     def on_firmware_erase(self, page, output_overlay):
         
@@ -514,14 +514,20 @@ class PS280EditorUI:
         page.scroll=ft.ScrollMode.ALWAYS
             # Define a custom theme with a primary color
         custom_theme = ft.Theme(
-            color_scheme=ft.ColorScheme(
-                primary="blue",  # Set the primary color explicitly
-                secondary="gray"
+            
+           color_scheme=ft.ColorScheme(
+            #    primary=page.theme.color_scheme.secondary_container,
+
+           # secondary=ft.colors.ORANGE,
+                #primary=ft.colors.GREY_400,  # Set the primary color explicitly
+                secondary=ft.colors.GREY_600,
+                secondary_container= ft.colors.GREY_800,# (Light Lavender)
+
             )
         )
         page.theme = custom_theme  # Assign the custom theme to the page
         
-        output_overlay = RealTimeOutputOverlay( stdout= stdoutstream, stderr= stderrstream)
+        output_overlay = RealTimeOutputOverlay(page=page, stdout= stdoutstream, stderr= stderrstream)
         page.overlay.append(output_overlay)
         self.create_elements(page, output_overlay)
         
@@ -533,6 +539,7 @@ class PS280EditorUI:
         page.add(self.pagecomponents['forms'])
         #page.add(self.widgets['configuration_form'])
         self.backend.set_firmware_version(self.dropdowns['firmware'].value)
+        #output_overlay.overlay_layout.visible = True
         
         
         
@@ -561,6 +568,7 @@ class PS280EditorUI:
     #backend.set('CORE','SERIAL','123',True)
 
 # + editable=true slideshow={"slide_type": ""}
+
 
 
 # + editable=true slideshow={"slide_type": ""}

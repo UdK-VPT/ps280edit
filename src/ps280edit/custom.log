@@ -1,0 +1,5 @@
+custom_logger - DEBUG - Debugging details
+custom_logger - INFO - Informational message
+custom_logger - WARNING - Warning alert
+custom_logger - ERROR - Error encountered
+custom_logger - CRITICAL - Critical issue!

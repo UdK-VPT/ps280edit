@@ -1,0 +1,67 @@
+"""
+Autor: Werner Kaul-Gothe
+Department: VPT
+Organisation: Universität der Künste Berlin IAS
+Datum: 09. Mai 2025
+
+This script handles USB serial connection loss due to device resets.
+It automatically detects and reconnects the device.
+"""
+
+import serial
+import time
+import glob
+
+def find_usb_serial():
+    """
+    Scan for USB serial devices and return the first available one.
+    """
+    ports = glob.glob('/dev/*usb*') #+ glob.glob('/dev/ttyACM*')
+    print(ports)
+    if ports:
+        print(f"Available ports: {ports}")
+        return ports[0]  # Return the first found port
+    return None
+
+def open_serial(port):
+    """
+    Try to open the given serial port.
+    """
+    try:
+        ser = serial.Serial(port, 9600, timeout=1)
+        print(f"Connected to {port}")
+        return ser
+    except serial.SerialException as e:
+        print(f"Error opening {port}: {e}")
+        return None
+
+def serial_reconnect():
+    """
+    Continuously check for USB serial connection and handle reconnections.
+    """
+    port = find_usb_serial()
+    ser = open_serial(port)
+
+    while True:
+        if ser and ser.is_open:
+            try:
+                data = ser.readline().decode().strip()
+                if data:
+                    print(f"Received: {data}")
+            except serial.SerialException:
+                print("Lost connection. Attempting to reconnect...")
+                ser.close()
+                ser = None
+
+        if not ser:
+            print("Searching for USB serial device...")
+            port = find_usb_serial()
+            if port:
+                ser = open_serial(port)
+            time.sleep(2)
+import time
+if __name__ == "__main__":
+    while True:
+        print("trying to reconnect")
+        serial_reconnect()
+        time.sleep(5)

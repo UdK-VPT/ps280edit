@@ -6,7 +6,7 @@
 #       extension: .py
 #       format_name: light
 #       format_version: '1.5'
-#       jupytext_version: 1.16.4
+#       jupytext_version: 1.16.7
 #   kernelspec:
 #     display_name: Python 3 (ipykernel)
 #     language: python
@@ -17,7 +17,7 @@
 #
 #
 
-# !python ps280edit.py
+# !python build.py
 
 # ## Create App
 
@@ -50,6 +50,8 @@ import os
 import yaml
 import shutil
 import subprocess
+import esptool; 
+esp_stub_data= os.path.join(os.path.dirname(esptool.__file__),"targets","stub_flasher")
 
 # Print the current working directory for debugging purposes
 print(f"Current Working Directory: {os.getcwd()}")
@@ -91,6 +93,8 @@ def build_pyinstaller():
     "--noconsole", 
     "--add-data", f"{config['cfg_file']}:.", 
     "--add-data", f"{config['defaults']}:{config['defaults']}", 
+   # "--add-data", f"{config['stickertool']['root']}:{config['stickertool']['root']}", 
+    "--add-data", f"{esp_stub_data}:{os.path.join('esptool','targets','stub_flasher')}",
     "--distpath", f"./{config['dist_dir']}", 
     "--workpath", f"./{config['temp_dir']}", 
     "--name", config['app_name'], 
@@ -104,5 +108,4 @@ if __name__ == "__main__":
     print("✅ Build completed successfully!")
 
 # -
-
 
