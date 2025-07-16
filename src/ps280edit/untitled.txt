@@ -1,0 +1,79 @@
+                                                                                                              #######################################################
+(I) [00:00:23] esp32s3_machine.cpp::esp32s3_machine():330 | SPIRAM Freq:80MHz
+(I) [00:00:23] logger_file.cpp::event_loop():229 | Starting File Logger
+(I) [00:00:23] kernel.cpp::reset_cause_print():1071 | Reset cause: SW
+(I) [00:00:23] kernel.cpp::thread_service():3035 | Core Service started
+(I) [00:00:23] shell.cpp::event_loop():403 | Shell is running
+(I) [00:00:23] bus_management.cpp::load():174 | I2C_EXT - Basic Conf
+(I) [00:00:23] shell.cpp::event_loop():416 | exts [bus cat cd cp crttool debug echo factory fdel ffnd flog frd frep fs fwr gpio grep halt head hex hub logging ls mkdir mv part pf ram reboot rdmod rm settings sha su task tail tree upload ]
+(I) [00:00:23] device_management.cpp::load():651 | Bus 0: Found [id=aht20|addr=0x38]
+(I) [00:00:23] device_management.cpp::load():651 | Bus 0: Found [id=sunrise|addr=0x68]
+(I) [00:00:23] measurement_service.cpp::thread_measurement():1311 | Context changed [msi=900|msc=4|max=62]
+(I) [00:00:23] measurement_service.cpp::thread_measurement():1333 | Clear all
+(I) [00:00:23] protocol_hub.cpp::init():544 | Loading MQTT
+(I) [00:00:23] logger_file.cpp::event_loop():325 | 335872 of 2093056 bytes free
+(I) [00:00:23] protocol_hub.cpp::event_loop():341 | state->INIT
+(I) [00:00:23] protocol_hub.cpp::event_loop():341 | state->CONNECT_TRANSPORT
+(I) [00:00:23] protocol_hub.cpp::transport_setup_wifi():3372 | Transport: WIFI
+(I) [00:00:24] protocol_hub.cpp::transport_setup_wifi():3406 | BSSID:1cd1e016d601
+(I) [00:00:24] core.cpp::configure():64 | MQTT 3.1.1
+(I) [00:00:24] protocol_hub.cpp::security_setup():1048 | NOSEC
+(I) [00:00:24] esp32s3_wifi.cpp::configure_sta():701 | WiFi started
+(I) [00:00:24] measurement_service.cpp::clear():84 | Cleared
+(I) [00:00:24] measurement_service.cpp::thread_measurement():1485 | Sample [t_ux=24|t_fms=2|t_fmr=1]
+(I) [00:00:26] measurement_service.cpp::thread_measurement():1532 | Process [item_no=0|base=0]
+(I) [00:00:26] measurement_service.cpp::thread_measurement():1638 | Series complete [m_ctx.current.item=0|msc=4|m_ctx.flags.first=1]
+(I) [00:00:26] esp32s3_wifi.cpp::connect_sta():1148 | Connecting to AP "emu.link" [BSSID:1cd1e016d601|TO:15s|AM:WIFI_AUTH_OPEN]
+(W) [00:00:26] esp32s3_machine.cpp::esp_sys_msg():247 | wifi:
+(I) [00:00:26] esp32s3_machine.cpp::esp_sys_msg():241 | Password length matches WPA2 standards, authmode threshold changes from OPEN to WPA2
+(I) [00:00:26] esp32s3_machine.cpp::esp_sys_msg():241 | |
+(W) [00:00:41] esp32s3_wifi.cpp::connect_sta():1318 | Timeout
+(I) [00:00:41] protocol_hub.cpp::event_loop():341 | state->ERROR
+(W) [00:00:41] protocol_hub.cpp::state_error():1716 | Error in state CONNECT_TRANSPORT [EC:1{TIMEOUT}|CNT:1/5]
+(I) [00:00:41] protocol_hub.cpp::event_loop():341 | state->DISCONNECT_TRANSPORT
+(I) [00:00:41] protocol_hub.cpp::event_loop():341 | state->CONNECT_TRANSPORT
+(I) [00:00:42] esp32s3_wifi.cpp::configure_sta():701 | WiFi started
+(I) [00:00:44] esp32s3_wifi.cpp::connect_sta():1148 | Connecting to AP "emu.link" [BSSID:1cd1e016d601|TO:15s|AM:WIFI_AUTH_OPEN]
+(W) [00:00:44] esp32s3_machine.cpp::esp_sys_msg():247 | wifi:
+(I) [00:00:44] esp32s3_machine.cpp::esp_sys_msg():241 | Password length matches WPA2 standards, authmode threshold changes from OPEN to WPA2
+(I) [00:00:44] esp32s3_machine.cpp::esp_sys_msg():241 | |
+(W) [00:00:59] esp32s3_wifi.cpp::connect_sta():1318 | Timeout
+(I) [00:00:59] protocol_hub.cpp::event_loop():341 | state->ERROR
+(W) [00:00:59] protocol_hub.cpp::state_error():1716 | Error in state CONNECT_TRANSPORT [EC:1{TIMEOUT}|CNT:2/5]
+(I) [00:00:59] protocol_hub.cpp::event_loop():341 | state->DISCONNECT_TRANSPORT
+(I) [00:00:59] protocol_hub.cpp::event_loop():341 | state->CONNECT_TRANSPORT
+(I) [00:00:59] esp32s3_wifi.cpp::configure_sta():701 | WiFi started
+(I) [00:01:02] esp32s3_wifi.cpp::connect_sta():1148 | Connecting to AP "emu.link" [BSSID:1cd1e016d601|TO:15s|AM:WIFI_AUTH_OPEN]
+(W) [00:01:02] esp32s3_machine.cpp::esp_sys_msg():247 | wifi:
+(I) [00:01:02] esp32s3_machine.cpp::esp_sys_msg():241 | Password length matches WPA2 standards, authmode threshold changes from OPEN to WPA2
+(I) [00:01:02] esp32s3_machine.cpp::esp_sys_msg():241 | |
+(W) [00:01:17] esp32s3_wifi.cpp::connect_sta():1318 | Timeout
+(I) [00:01:17] protocol_hub.cpp::event_loop():341 | state->ERROR
+(W) [00:01:17] protocol_hub.cpp::state_error():1716 | Error in state CONNECT_TRANSPORT [EC:1{TIMEOUT}|CNT:3/5]
+(I) [00:01:17] protocol_hub.cpp::event_loop():341 | state->DISCONNECT_TRANSPORT
+(I) [00:01:18] protocol_hub.cpp::event_loop():341 | state->CONNECT_TRANSPORT
+(I) [00:01:18] esp32s3_wifi.cpp::configure_sta():701 | WiFi started
+(I) [00:01:20] esp32s3_wifi.cpp::connect_sta():1148 | Connecting to AP "emu.link" [BSSID:1cd1e016d601|TO:15s|AM:WIFI_AUTH_OPEN]
+(W) [00:01:20] esp32s3_machine.cpp::esp_sys_msg():247 | wifi:
+(I) [00:01:20] esp32s3_machine.cpp::esp_sys_msg():241 | Password length matches WPA2 standards, authmode threshold changes from OPEN to WPA2
+(I) [00:01:20] esp32s3_machine.cpp::esp_sys_msg():241 | |
+(W) [00:01:35] esp32s3_wifi.cpp::connect_sta():1318 | Timeout
+(I) [00:01:35] protocol_hub.cpp::event_loop():341 | state->ERROR
+(W) [00:01:35] protocol_hub.cpp::state_error():1716 | Error in state CONNECT_TRANSPORT [EC:1{TIMEOUT}|CNT:4/5]
+(I) [00:01:36] protocol_hub.cpp::event_loop():341 | state->DISCONNECT_TRANSPORT
+(I) [00:01:36] protocol_hub.cpp::event_loop():341 | state->CONNECT_TRANSPORT
+(I) [00:01:36] esp32s3_wifi.cpp::configure_sta():701 | WiFi started
+(I) [00:01:38] esp32s3_wifi.cpp::connect_sta():1148 | Connecting to AP "emu.link" [BSSID:1cd1e016d601|TO:15s|AM:WIFI_AUTH_OPEN]
+(W) [00:01:38] esp32s3_machine.cpp::esp_sys_msg():247 | wifi:
+(I) [00:01:38] esp32s3_machine.cpp::esp_sys_msg():241 | Password length matches WPA2 standards, authmode threshold changes from OPEN to WPA2
+(I) [00:01:38] esp32s3_machine.cpp::esp_sys_msg():241 | |
+(W) [00:01:53] esp32s3_wifi.cpp::connect_sta():1318 | Timeout
+(I) [00:01:53] protocol_hub.cpp::event_loop():341 | state->ERROR
+(W) [00:01:53] protocol_hub.cpp::state_error():1716 | Error in state CONNECT_TRANSPORT [EC:1{TIMEOUT}|CNT:5/5]
+(I) [00:01:53] protocol_hub.cpp::state_error():1769 | t_retry: 240
+(E) [00:01:53] protocol_hub.cpp::state_error():1781 | Aborting! Next EV: 353
+(I) [00:01:53] protocol_hub.cpp::event_loop():341 | state->DISCONNECT_REMOTE
+(I) [00:01:53] protocol_hub.cpp::event_loop():341 | state->DISCONNECT_TRANSPORT
+(I) [00:01:53] protocol_hub.cpp::event_loop():341 | state->SLEEP
+(I) [00:01:53] protocol_hub.cpp::event_loop():341 | state->IDLE
+/ > 

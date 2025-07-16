@@ -156,7 +156,8 @@ class PS280EditorBackend:
     
     def __init__(self, database_root, firmware_dir, template_dir,
                  sticker_config_file, sticker_template_file,
-                 topic_upload="MQTT.TOPIC_UP", topic_download="MQTT.TOPIC_DOWN",
+                 topic_upload="MQTT.TOPIC_UP", topic_download="MQTT.TOPIC_DOWN", 
+                 topic_client_id="MQTT.CLIENT_ID",
                  topic_serial="CORE.SERIAL", topic_version="CORE.VERSION",
                  topic_broker_ip="HUB.REMOTE_IP", parameters_ignore=[],
                  parameters_superuser=[]):
@@ -188,6 +189,7 @@ class PS280EditorBackend:
         self.topic_upload = topic_upload
         self.topic_download = topic_download
         self.topic_serial = topic_serial
+        self.topic_client_id = topic_client_id
         self.topic_version = topic_version
         self.topic_broker_ip = topic_broker_ip
         self.parameters_ignore = parameters_ignore
@@ -335,6 +337,23 @@ class PS280EditorBackend:
         except Exception as e:
             return False, f"Error setting serial number in configuration: {e}"
     
+    def set_configuration_client_id(self, client_id):
+        """
+        Set the configuration MQTT client_id.
+        
+        Args:
+            client_id (str): The client_id.
+        
+        Returns:
+            tuple: (bool, str) Success status and message.
+        """
+        section, key = self.topic_client_id.split(".")
+        try:
+            self.toml_data[section][key] = client_id
+            return True, f"Client ID set to: {client_id}"
+        except Exception as e:
+            return False, f"Error setting Client ID in configuration: {e}"
+
     def set_configuration_mqtt_broker_ip(self, broker):
         """
         Set the MQTT broker's IP .
@@ -627,6 +646,17 @@ class PS280EditorBackend:
         The sticker contains relevant device information including serial number and sensor ID,
         and is saved as a high-resolution image.
         """
+
+        def open_file(filepath):
+            
+            # Open with default viewer (Windows, macOS, Linux compatible)
+            if sys.platform == "darwin":
+                subprocess.run(["open", filepath])
+            elif sys.platform == "linux":
+                subprocess.run(["xdg-open", filepath])
+            else:
+                subprocess.run(["start", filepath], shell=True)
+            
         targetpath = os.path.dirname(os.path.join(self.current_file_path))
         
         # Initialize sticker generator with configuration files
@@ -660,11 +690,7 @@ class PS280EditorBackend:
         # Save the final high-resolution image
         filepath = os.path.join(sticker.output_path, f"{sticker.serial}_qr_and_sticker.png")
         merged_image.save(filepath, dpi=(300, 300))
-        # Open with default viewer (Windows, macOS, Linux compatible)
-        if sys.platform == "darwin":
-            subprocess.run(["open", filepath])
-        elif sys.platform == "linux":
-            subprocess.run(["xdg-open", filepath])
-        else:
-            subprocess.run(["start", filepath], shell=True)
+        open_file(sticker.qr_code_file)
+        open_file(sticker.image_file)
+
 

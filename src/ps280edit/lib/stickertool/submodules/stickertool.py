@@ -6,7 +6,7 @@
 #       extension: .py
 #       format_name: light
 #       format_version: '1.5'
-#       jupytext_version: 1.16.7
+#       jupytext_version: 1.16.4
 #   kernelspec:
 #     display_name: Python 3 (ipykernel)
 #     language: python
@@ -135,7 +135,7 @@ class Sticker:
         factor= new_width/width*dpi/resolution    
         image= image.resize((round(width*factor),round(height*factor)))
         image= ImageOps.expand(image, border=(1, 1, 1, 20), fill='white')
-        #image= ImageOps.expand(image, border=(1, 1, 1, 1), fill='black')
+        image= ImageOps.expand(image, border=(1, 1, 1, 1), fill='black')
         image.save(os.path.join(self.output_path, f"{self.serial}_qrcode.png"), dpi=(dpi, dpi))
         if show:
             image.show()
@@ -160,24 +160,20 @@ class Sticker:
             self.dpi = dpi
             
         image = Image.open(self.image_template)
-        if sys.platform in ["darwin","linux"]:
-            font_family = "Arial.ttf"
-        else:
-            font_family = "arial.ttf"
-        
+
         infotext= self.infotext.replace('<<mailto>>',self.mailaddress).replace('<<serial>>',self.serial).replace('<<sensorid>>',self.sensorid)
-        self.draw_text(image,infotext, 0.8, 0, 100, font_family= font_family, linelength=35)
+        self.draw_text(image,infotext, 0.8, 0, 100, linelength=35)
         supporttext= self.supporttext.replace('<<mailto>>',self.mailaddress).replace('<<serial>>',self.serial).replace('<<sensorid>>',self.sensorid)
-        self.draw_text(image,supporttext, 0.8, 0, 295, font_family= font_family, linelength=40)
-        self.draw_text(image,f"[{self.sensorid}]", 0.8, 0, 420, font_family= font_family, linelength=45)
-        self.draw_text(image,f"Serial: {self.serial}", 0.8, -120, 530, font_family= font_family, linelength=45)
+        self.draw_text(image,supporttext, 0.8, 0, 295, linelength=40)
+        self.draw_text(image,f"[{self.sensorid}]", 0.8, 0, 420, linelength=45)
+        self.draw_text(image,f"Serial: {self.serial}", 0.8, -120, 530, linelength=45)
         resolution= round(image.info['dpi'][0])
         pixel_per_mm= resolution/25.4
         width, height = image.size
         new_width= pixel_per_mm * size
         factor= new_width/width * dpi/resolution    
         image= image.resize((round(width*factor),round(height*factor)))
-        #image= ImageOps.expand(image, border=(1, 1, 1, 1), fill='black')
+        image= ImageOps.expand(image, border=(1, 1, 1, 1), fill='black')
         image.save(os.path.join(self.output_path,f"{self.serial}_sticker.png"), dpi= (dpi,dpi))
         if show:
             image.show()

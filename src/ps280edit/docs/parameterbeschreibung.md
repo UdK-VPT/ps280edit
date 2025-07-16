@@ -215,7 +215,7 @@ Aktiviert Systemdiagnostik.
 ### `MAX_RETRY`
 Anzahl an Wiederholungsversuchen für Publish.  
 **Standardwert**: 1
-**emu Standardwert**: ``
+**emu Standardwert**: 4
 
 ### `PL_SIG_ENA`
 Aktiviert Payload-Signatur.  

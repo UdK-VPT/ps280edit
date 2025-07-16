@@ -404,7 +404,14 @@ class PS280EditorUI:
                 #self.render_form()  # Render the form based on the loaded TOML data
                 self.show_snackbar(page, message)
             else:
-                self.show_snackbar(page, f"Set topics in configuration to {self.dropdowns['template'].value}")
+                self.show_snackbar(page, f"Set serial number in configuration to {self.textfields['serial'].value}")
+            success, message = self.backend.set_configuration_client_id(self.textfields['serial'].value)
+            self.update_ui(page)
+            if success:
+                #self.render_form()  # Render the form based on the loaded TOML data
+                self.show_snackbar(page, message)
+            else:
+                self.show_snackbar(page, f"Set MQTT Client ID in configuration to {self.textfields['serial'].value}")
                 
 
     def on_set_configuration_mqtt_broker(self, page):
@@ -414,7 +421,7 @@ class PS280EditorUI:
                 #self.render_form()  # Render the form based on the loaded TOML data
                 self.show_snackbar(page, message)
             else:
-                self.show_snackbar(page, f"Set topics in configuration to {self.dropdowns['template'].value}")
+                self.show_snackbar(page, f"Set MQTT broker in configuration to {self.textfields['mqtt_broker'].value}")
     #Erase Firmware
     def on_firmware_erase(self, page, output_overlay):
         
